@@ -1,11 +1,12 @@
 package netology;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public class Server {
     private static final List<String> VALID_PATHS = List.of("/index.html", "/spring.svg", "/spring.png",
             "/resources.html", "/styles.css", "/app.js", "/links.html",
             "/forms.html", "/classic.html", "/events.html", "/events.js");
+
 
     public void start() {
         ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
@@ -39,7 +41,7 @@ public class Server {
                 BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
         ) {
             // read only request line for simplicity
-            // must be in form GET /path HTTP/1.1
+            // must be in form GET /path?param1=value1&param2=value2 HTTP/1.1
             String requestLine = in.readLine();
             String[] parts = requestLine.split(" ");
 
@@ -49,6 +51,8 @@ public class Server {
             }
 
             String path = parts[1];
+            List<NameValuePair> params = URLEncodedUtils.parse(URI.create(path), "UTF-8");
+
             if (!VALID_PATHS.contains(path)) {
                 out.write((
                         "HTTP/1.1 404 Not Found\r\n" +
@@ -65,8 +69,8 @@ public class Server {
 
             // special case for classic
             if (path.equals("/classic.html")) {
-                String template = Files.readString(filePath);
-                String content = template.replace(
+                String templates = Files.readString(filePath);
+                String content = templates.replace(
                         "{time}",
                         LocalDateTime.now().toString()
                 );
@@ -95,5 +99,18 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getQueryParam(String name, List<NameValuePair> params) {
+        for (NameValuePair param : params) {
+            if (param.getName().equals(name)) {
+                return param.getValue();
+            }
+        }
+        return null;
+    }
+
+    private List<NameValuePair> getQueryParams(String path) {
+        return URLEncodedUtils.parse(URI.create(path), "UTF-8");
     }
 }
