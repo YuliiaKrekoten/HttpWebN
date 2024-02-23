@@ -7,6 +7,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -51,7 +52,7 @@ public class Server {
             }
 
             String path = parts[1];
-            List<NameValuePair> params = URLEncodedUtils.parse(URI.create(path), "UTF-8");
+            List<NameValuePair> params = getQueryParams(path);
 
             if (!VALID_PATHS.contains(path)) {
                 out.write((
@@ -101,16 +102,8 @@ public class Server {
         }
     }
 
-    private String getQueryParam(String name, List<NameValuePair> params) {
-        for (NameValuePair param : params) {
-            if (param.getName().equals(name)) {
-                return param.getValue();
-            }
-        }
-        return null;
-    }
-
     private List<NameValuePair> getQueryParams(String path) {
-        return URLEncodedUtils.parse(URI.create(path), "UTF-8");
+        String queryString = path.contains("?") ? path.substring(path.indexOf("?") + 1) : "";
+        return URLEncodedUtils.parse(queryString, Charset.forName("UTF-8"));
     }
 }
